@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Floating Manual Calculator
+    Root = FrameLayout so the resize handle can be pinned to the bottom-right corner.
+    Inner LinearLayout carries the actual content + rounded background.
+    Initial size: 300 × 415 dp (set in FloatingWindowService buildParams).
+    The GridLayout fills remaining space with layout_weight="1" so all rows
+    scale proportionally when the user resizes the window.
+-->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- ── Content card ── -->
+    <LinearLayout
+        android:id="@+id/manualFloatContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@drawable/bg_float_window"
+        android:clipToOutline="true">
+
+        <!-- ── Drag / Title bar ── -->
+        <LinearLayout
+            android:id="@+id/floatManualHeader"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:background="@color/bg_float_header">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Calculator"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.05"/>
+
+            <ImageButton
+                android:id="@+id/btnFloatMinimize"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:src="@drawable/ic_minimize"
+                android:background="@drawable/bg_icon_btn"
+                android:contentDescription="Minimize"
+                android:padding="8dp"/>
+
+            <Space android:layout_width="6dp" android:layout_height="1dp"/>
+
+            <ImageButton
+                android:id="@+id/btnFloatClose"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:src="@drawable/ic_close"
+                android:background="@drawable/bg_icon_btn"
+                android:contentDescription="Close"
+                android:padding="8dp"/>
+        </LinearLayout>
+
+        <!-- ── Display ── -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="90dp"
+            android:orientation="vertical"
+            android:gravity="bottom|end"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/tvFloatExpression"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:gravity="end"
+                android:singleLine="true"
+                android:ellipsize="start"
+                android:fontFamily="sans-serif-light"/>
+
+            <TextView
+                android:id="@+id/tvFloatResult"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="@color/text_primary"
+                android:textSize="44sp"
+                android:gravity="end"
+                android:singleLine="true"
+                android:ellipsize="start"
+                android:fontFamily="sans-serif-light"
+                android:includeFontPadding="false"/>
+        </LinearLayout>
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/divider"/>
+
+        <!-- ── Button Grid – fills remaining space so buttons scale on resize ── -->
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:columnCount="4"
+            android:rowCount="5"
+            android:padding="4dp"
+            android:useDefaultMargins="false">
+
+            <!-- Row 1: AC  %  ⌫  ÷ -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloatClear"
+                style="@style/CalcButtonFunction"
+                android:text="AC"
+                android:textSize="13sp"
+                android:textAllCaps="false"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloatPercent"
+                style="@style/CalcButtonFunction"
+                android:text="%"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloatBackspace"
+                style="@style/CalcButtonFunction"
+                android:text="⌫"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloatDivide"
+                style="@style/CalcButtonOperator"
+                android:text="÷"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <!-- Row 2: 7  8  9  × -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloat7"
+                style="@style/CalcButtonNumber"
+                android:text="7"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloat8"
+                style="@style/CalcButtonNumber"
+                android:text="8"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloat9"
+                style="@style/CalcButtonNumber"
+                android:text="9"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloatMultiply"
+                style="@style/CalcButtonOperator"
+                android:text="×"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <!-- Row 3: 4  5  6  − -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloat4"
+                style="@style/CalcButtonNumber"
+                android:text="4"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloat5"
+                style="@style/CalcButtonNumber"
+                android:text="5"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloat6"
+                style="@style/CalcButtonNumber"
+                android:text="6"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloatSubtract"
+                style="@style/CalcButtonOperator"
+                android:text="−"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <!-- Row 4: 1  2  3  + -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloat1"
+                style="@style/CalcButtonNumber"
+                android:text="1"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloat2"
+                style="@style/CalcButtonNumber"
+                android:text="2"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloat3"
+                style="@style/CalcButtonNumber"
+                android:text="3"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloatAdd"
+                style="@style/CalcButtonOperator"
+                android:text="+"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <!-- Row 5: 00  0  .  = -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloat00"
+                style="@style/CalcButtonNumber"
+                android:text="00"
+                android:textSize="15sp"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloat0"
+                style="@style/CalcButtonNumber"
+                android:text="0"
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloatDecimal"
+                style="@style/CalcButtonNumber"
+                android:text="."
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFloatEquals"
+                style="@style/CalcButtonEquals"
+                android:text="="
+                android:layout_columnWeight="1"
+                android:layout_rowWeight="1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"/>
+
+        </GridLayout>
+
+    </LinearLayout>
+
+    <!-- ── Resize handle – bottom-right corner drag target ── -->
+    <ImageView
+        android:id="@+id/resizeHandle"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_gravity="bottom|end"
+        android:src="@drawable/ic_resize_corner"
+        android:padding="4dp"
+        android:contentDescription="Resize"
+        android:clickable="true"
+        android:focusable="true"/>
+
+</FrameLayout>

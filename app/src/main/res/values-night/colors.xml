@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark mode colors -->
+<resources>
+    <!-- Backgrounds -->
+    <color name="bg_dark">#FF1C1C1E</color>
+    <color name="bg_card">#FF2C2C2E</color>
+
+    <!-- Calculator buttons – dark -->
+    <color name="btn_number">#FF3A3A3C</color>
+    <color name="btn_number_pressed">#FF545458</color>
+    <color name="btn_function">#FF636366</color>
+    <color name="btn_function_pressed">#FF8E8E93</color>
+    <color name="btn_operator">#FFFF9F0A</color>
+    <color name="btn_operator_pressed">#FFFFCC02</color>
+    <color name="btn_equals">#FF30D158</color>
+    <color name="btn_equals_pressed">#FF34C759</color>
+
+    <!-- Text – dark -->
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#FF8E8E93</color>
+    <color name="text_operator">#FFFFFFFF</color>
+    <color name="text_function">#FFFFFFFF</color>
+
+    <!-- Floating window – same as always -->
+    <color name="bg_float">#F21C1C1E</color>
+    <color name="bg_float_header">#FF2C2C2E</color>
+
+    <!-- Misc -->
+    <color name="divider">#33FFFFFF</color>
+    <color name="btn_action">#FF0A84FF</color>
+</resources>

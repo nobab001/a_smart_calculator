@@ -1,0 +1,513 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    OnePlus-style Calculator Layout
+    Top bar : [↔ Manual] [⚡ Smart] ··· [♿ Accessibility] [⚙ Settings]
+    Row 1   :  AC     %      ⌫      ÷
+    Row 2   :  7      8      9      ×
+    Row 3   :  4      5      6      −
+    Row 4   :  1      2      3      +
+    Row 5   :  00     0      .      =
+-->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark"
+    android:fitsSystemWindows="true">
+
+    <!-- ───── Top Bar ───── -->
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="0dp"
+        android:layout_height="52dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="8dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Manual float mode button -->
+        <LinearLayout
+            android:id="@+id/btnFloatManual"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:paddingHorizontal="6dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_float_mode"
+                android:tint="@color/text_secondary"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Manual"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginStart="4dp"/>
+        </LinearLayout>
+
+        <!-- Smart float mode button -->
+        <LinearLayout
+            android:id="@+id/btnFloatSmart"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:paddingHorizontal="6dp"
+            android:layout_marginStart="4dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_smart_mode"
+                android:tint="@color/btn_operator"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Smart"
+                android:textColor="@color/btn_operator"
+                android:textSize="12sp"
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginStart="4dp"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1"/>
+
+        <ImageButton
+            android:id="@+id/btnAccessibility"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@drawable/ic_accessibility"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:tint="@color/text_secondary"
+            android:contentDescription="Accessibility Service"
+            android:padding="10dp"/>
+
+        <ImageButton
+            android:id="@+id/btnSettings"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@drawable/ic_settings"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:tint="@color/text_secondary"
+            android:contentDescription="Settings"
+            android:padding="10dp"/>
+
+        <!-- ── Edit Mode bar (hidden in normal mode) ── -->
+        <TextView
+            android:id="@+id/tvEditHint"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="✦ Long-press a button to drag"
+            android:textColor="@color/btn_operator"
+            android:textSize="12sp"
+            android:fontFamily="sans-serif-medium"
+            android:visibility="gone"/>
+
+        <Button
+            android:id="@+id/btnEditDone"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Done ✓"
+            android:textColor="#FFFFFFFF"
+            android:backgroundTint="@color/btn_equals"
+            android:textSize="13sp"
+            android:fontFamily="sans-serif-medium"
+            android:paddingHorizontal="18dp"
+            android:visibility="gone"/>
+    </LinearLayout>
+
+    <!-- ───── Display Area (3 zones) ───── -->
+    <LinearLayout
+        android:id="@+id/displayArea"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        app:layout_constraintTop_toBottomOf="@id/topBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/historyStrip"
+        app:layout_constraintHeight_percent="0.36">
+
+        <!-- ── Zone 1 : Session History (top, faded, scrollable) – tap to edit expression ── -->
+        <ScrollView
+            android:id="@+id/scrollHistory"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="3"
+            android:overScrollMode="never"
+            android:scrollbars="none"
+            android:fillViewport="false"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
+
+            <TextView
+                android:id="@+id/tvHistory"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:textColor="@color/text_secondary"
+                android:textSize="15sp"
+                android:fontFamily="sans-serif-light"
+                android:paddingHorizontal="20dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="4dp"
+                android:lineSpacingMultiplier="1.3"/>
+        </ScrollView>
+
+        <!-- Divider 1 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.8dp"
+            android:layout_marginHorizontal="20dp"
+            android:background="@color/divider"/>
+
+        <!-- ── Zone 2 : Current input (middle, large) ── -->
+        <TextView
+            android:id="@+id/tvResult"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="4"
+            android:text="0"
+            android:textColor="@color/text_primary"
+            android:textSize="64sp"
+            android:gravity="center_vertical|end"
+            android:paddingHorizontal="20dp"
+            android:singleLine="true"
+            android:ellipsize="start"
+            android:fontFamily="sans-serif-light"
+            android:includeFontPadding="false"/>
+
+        <!-- Divider 2 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.8dp"
+            android:layout_marginHorizontal="20dp"
+            android:background="@color/divider"/>
+
+        <!-- ── Zone 3 : Session running total (bottom, orange) ── -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="2"
+            android:orientation="horizontal"
+            android:gravity="center_vertical|end"
+            android:paddingHorizontal="20dp"
+            android:paddingBottom="4dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="=  "
+                android:textColor="@color/btn_operator"
+                android:textSize="20sp"
+                android:fontFamily="sans-serif-medium"
+                android:alpha="0.9"/>
+
+            <TextView
+                android:id="@+id/tvTotal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="@color/btn_operator"
+                android:textSize="24sp"
+                android:singleLine="true"
+                android:ellipsize="start"
+                android:fontFamily="sans-serif-light"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ───── History Button Strip (above AC) ───── -->
+    <LinearLayout
+        android:id="@+id/historyStrip"
+        android:layout_width="0dp"
+        android:layout_height="38dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="10dp"
+        app:layout_constraintTop_toBottomOf="@id/displayArea"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_history"
+            android:tint="@color/text_secondary"
+            android:alpha="0.7"/>
+
+        <TextView
+            android:id="@+id/btnHistory"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="  History"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            android:fontFamily="sans-serif-medium"
+            android:alpha="0.7"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:paddingVertical="6dp"
+            android:paddingHorizontal="4dp"/>
+
+        <!-- Separator dot -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="  ·  "
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            android:alpha="0.4"/>
+
+        <!-- Quick Discount Calculator shortcut -->
+        <TextView
+            android:id="@+id/btnDiscount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="% Discount"
+            android:textColor="@color/btn_operator"
+            android:textSize="13sp"
+            android:fontFamily="sans-serif-medium"
+            android:alpha="0.85"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:paddingVertical="6dp"
+            android:paddingHorizontal="4dp"/>
+
+    </LinearLayout>
+
+    <!-- Divider between history strip and keypad -->
+    <View
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="#22FFFFFF"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/buttonGrid"/>
+
+    <!-- ───── Button Grid (5 rows × 4 cols) ───── -->
+    <GridLayout
+        android:id="@+id/buttonGrid"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:columnCount="4"
+        android:rowCount="5"
+        android:paddingTop="15dp"
+        android:paddingHorizontal="6dp"
+        android:paddingBottom="6dp"
+        android:useDefaultMargins="false"
+        app:layout_constraintTop_toBottomOf="@id/historyStrip"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.56">
+
+        <!-- ═══ Row 1 : AC   %   ⌫   ÷ ═══ -->
+        <Button
+            android:id="@+id/btnClear"
+            style="@style/CalcButtonFunction"
+            android:text="AC"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/btnPercent"
+            style="@style/CalcButtonFunction"
+            android:text="%"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/btnBackspace"
+            style="@style/CalcButtonFunction"
+            android:text="⌫"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/btnDivide"
+            style="@style/CalcButtonOperator"
+            android:text="÷"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <!-- ═══ Row 2 : 7   8   9   × ═══ -->
+        <Button
+            android:id="@+id/btn7"
+            style="@style/CalcButtonNumber"
+            android:text="7"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/btn8"
+            style="@style/CalcButtonNumber"
+            android:text="8"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/btn9"
+            style="@style/CalcButtonNumber"
+            android:text="9"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/btnMultiply"
+            style="@style/CalcButtonOperator"
+            android:text="×"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <!-- ═══ Row 3 : 4   5   6   − ═══ -->
+        <Button
+            android:id="@+id/btn4"
+            style="@style/CalcButtonNumber"
+            android:text="4"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/btn5"
+            style="@style/CalcButtonNumber"
+            android:text="5"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/btn6"
+            style="@style/CalcButtonNumber"
+            android:text="6"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/btnSubtract"
+            style="@style/CalcButtonOperator"
+            android:text="−"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <!-- ═══ Row 4 : 1   2   3   + ═══ -->
+        <Button
+            android:id="@+id/btn1"
+            style="@style/CalcButtonNumber"
+            android:text="1"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/btn2"
+            style="@style/CalcButtonNumber"
+            android:text="2"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/btn3"
+            style="@style/CalcButtonNumber"
+            android:text="3"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/btnAdd"
+            style="@style/CalcButtonOperator"
+            android:text="+"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <!-- ═══ Row 5 : 00   0   .   = ═══ -->
+        <Button
+            android:id="@+id/btnDoubleZero"
+            style="@style/CalcButtonNumber"
+            android:text="00"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/btn0"
+            style="@style/CalcButtonNumber"
+            android:text="0"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/btnDecimal"
+            style="@style/CalcButtonNumber"
+            android:text="."
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/btnEquals"
+            style="@style/CalcButtonEquals"
+            android:text="="
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+
+    </GridLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

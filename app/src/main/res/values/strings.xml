@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Smart Calculator</string>
+    <string name="accessibility_service_description">SmartCalculator reads numbers from WhatsApp messages for automatic summing. No personal data is stored or transmitted.</string>
+    <string name="channel_name">Floating Calculator</string>
+    <string name="channel_desc">Shows the floating calculator window</string>
+    <string name="notif_title">SmartCalculator Active</string>
+    <string name="notif_text">Tap to open floating calculator</string>
+    <string name="manual_mode">Manual Mode</string>
+    <string name="smart_mode">Smart Mode</string>
+    <string name="choose_float_mode">Choose Floating Mode</string>
+    <string name="overlay_permission_needed">Overlay permission is required. Please grant it in Settings.</string>
+    <string name="accessibility_needed">Enable SmartCalculator in Accessibility Settings to extract WhatsApp numbers automatically.</string>
+</resources>

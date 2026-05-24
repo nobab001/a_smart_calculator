@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Three diagonal parallel lines in the bottom-right corner — standard resize grip -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- long diagonal -->
+    <path
+        android:strokeColor="#66FFFFFF"
+        android:strokeWidth="1.8"
+        android:pathData="M6,18 L18,6"/>
+    <!-- medium diagonal -->
+    <path
+        android:strokeColor="#66FFFFFF"
+        android:strokeWidth="1.8"
+        android:pathData="M11,18 L18,11"/>
+    <!-- short diagonal -->
+    <path
+        android:strokeColor="#66FFFFFF"
+        android:strokeWidth="1.8"
+        android:pathData="M16,18 L18,16"/>
+
+</vector>
