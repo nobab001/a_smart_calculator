@@ -278,9 +278,9 @@ class FloatingWindowService : Service() {
         // Dynamic text size based on digit count
         val digitCount = bubbleText.count { it.isDigit() }
         val textSizeSp = when {
-            digitCount <= 3 -> 20f
-            digitCount <= 5 -> 16f
-            else -> 18f
+            digitCount <= 3 -> 17f
+            digitCount <= 5 -> 14f
+            else -> 15f
         }
         tvBubble?.textSize = textSizeSp
 
@@ -357,41 +357,30 @@ class FloatingWindowService : Service() {
             return if (digitCount > 5) instance.id.toString() else formatted
         }
 
+        // No expression typed — show serial number
+        if (calcExpr.isEmpty()) return instance.id.toString()
+
+        // Equals pressed — show final result
         if (instance.floatJustEquals) {
             val total = instance.floatExprDisplay.toString().ifEmpty { "0" }
             return formatWithLimit(total)
         }
 
+        // Expression in progress — evaluate what we can
         val endsWithOp = calcExpr.lastOrNull()?.let { it == '+' || it == '-' || it == '*' || it == '/' } ?: false
-        if (endsWithOp) {
-            var opCount = 0
-            for (i in calcExpr.indices) {
-                val c = calcExpr[i]
-                if (c == '+' || c == '*' || c == '/') {
-                    opCount++
-                } else if (c == '-') {
-                    if (i > 0) {
-                        val prev = calcExpr[i - 1]
-                        if (prev.isDigit() || prev == '.') {
-                            opCount++
-                        }
-                    }
-                }
-            }
-            if (opCount >= 2) {
-                val subExpr = calcExpr.substring(0, calcExpr.length - 1)
-                val result = CalculatorEngine.eval(subExpr)
-                if (!result.isNaN() && !result.isInfinite()) {
-                    return formatWithLimit(fmtResult(result))
-                }
+        val evalExpr = if (endsWithOp) calcExpr.dropLast(1) else calcExpr
+        if (evalExpr.isNotEmpty()) {
+            val result = CalculatorEngine.eval(evalExpr)
+            if (!result.isNaN() && !result.isInfinite()) {
+                return formatWithLimit(fmtResult(result))
             }
         }
 
-        if (instance.titleText != "Calculator" && !instance.titleText.startsWith("Calculator ")) {
-            val titleFallback = instance.titleText.take(1)
-            val digitCount = titleFallback.count { it.isDigit() }
-            return if (digitCount > 5) instance.id.toString() else titleFallback
-        }
+        // Fallback: show current number segment
+        val displayExpr = instance.floatExprDisplay.toString()
+        val lastOp = displayExpr.indexOfLast { it == '+' || it == '\u2212' || it == '\u00d7' || it == '\u00f7' }
+        val currentNum = if (lastOp < 0) displayExpr else displayExpr.substring(lastOp + 1)
+        if (currentNum.isNotEmpty() && currentNum != "-") return formatWithLimit(currentNum)
 
         return instance.id.toString()
     }
