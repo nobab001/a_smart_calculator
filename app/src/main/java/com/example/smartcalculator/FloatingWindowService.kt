@@ -191,21 +191,15 @@ class FloatingWindowService : Service() {
         }
 
         fun update() {
+            val expr = floatExprDisplay.toString()
+            val calcExpr = floatExprCalc.toString()
+            val lastOp = expr.indexOfLast { it == '+' || it == '−' || it == '×' || it == '÷' }
+
             if (floatJustEquals) {
                 display.text  = fmtNum(floatExprDisplay.toString().ifEmpty { "0" })
                 exprView.text = ""
-                opView?.text  = ""
+                opView?.text  = "="
             } else {
-                val expr = floatExprDisplay.toString()
-                val calcExpr = floatExprCalc.toString()
-                val lastOp = expr.indexOfLast { it == '+' || it == '−' || it == '×' || it == '÷' }
-                
-                if (lastOp >= 0) {
-                    opView?.text = expr[lastOp].toString()
-                } else {
-                    opView?.text = ""
-                }
-
                 if (endsWithOp()) {
                     val opCount = countBinaryOperators(calcExpr)
                     if (opCount >= 2) {
@@ -216,13 +210,16 @@ class FloatingWindowService : Service() {
                         } else {
                             display.text = fmtNum(fmtResult(result))
                         }
+                        opView?.text = "="
                     } else {
                         val subExpr = calcExpr.substring(0, calcExpr.length - 1)
                         display.text = fmtNum(subExpr.ifEmpty { "0" })
+                        opView?.text = if (lastOp >= 0) expr[lastOp].toString() else ""
                     }
                 } else {
                     val cur = currentNumber()
                     display.text = fmtNum(cur.ifEmpty { "0" })
+                    opView?.text = if (lastOp >= 0) expr[lastOp].toString() else ""
                 }
                 exprView.text = if (lastOp >= 0) expr.substring(0, lastOp + 1) else ""
             }
@@ -304,7 +301,7 @@ class FloatingWindowService : Service() {
             v.findViewById<MaterialButton>(id).setOnClickListener { onDigit(d) }
         }
 
-        v.findViewById<MaterialButton>(R.id.btnFloatClear).setOnClickListener     { resetCalcState(); display.text = "0"; exprView.text = "" }
+        v.findViewById<MaterialButton>(R.id.btnFloatClear).setOnClickListener     { resetCalcState(); update() }
         v.findViewById<MaterialButton>(R.id.btnFloatBackspace).setOnClickListener { onBackspace() }
         v.findViewById<MaterialButton>(R.id.btnFloatAdd).setOnClickListener       { onOperator("+") }
         v.findViewById<MaterialButton>(R.id.btnFloatSubtract).setOnClickListener  { onOperator("−") }
