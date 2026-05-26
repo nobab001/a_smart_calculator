@@ -71,9 +71,8 @@
             android:orientation="vertical"
             android:gravity="center"
             android:paddingHorizontal="12dp"
-            android:paddingTop="10dp"
-            android:paddingBottom="5dp"
-            android:minHeight="120dp">
+            android:paddingTop="4dp"
+            android:paddingBottom="2dp">
 
             <!-- Expression row: scrollable history tokens + overlay editor -->
             <FrameLayout
@@ -81,6 +80,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="4dp"
+                android:layout_marginHorizontal="3dp"
                 android:minHeight="28dp">
 
                 <HorizontalScrollView
@@ -129,7 +129,7 @@
                 android:gravity="center"
                 android:letterSpacing="0.15"
                 android:fontFamily="sans-serif-medium"
-                android:layout_marginTop="10dp"/>
+                android:layout_marginTop="2dp"/>
 
             <!-- Large total number -->
             <TextView
@@ -138,7 +138,7 @@
                 android:layout_height="wrap_content"
                 android:text="0"
                 android:textColor="@color/text_primary"
-                android:textSize="40sp"
+                android:textSize="30sp"
                 android:gravity="center"
                 android:singleLine="true"
                 android:ellipsize="start"

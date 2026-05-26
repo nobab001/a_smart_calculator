@@ -71,6 +71,9 @@ class FloatingWindowService : Service() {
     // ── Multiple Manual Calculator Instances ──────────────────────────────
     private val manualInstances = mutableListOf<ManualInstance>()
 
+    private var smartEtExpr: SmartExpressionEditText? = null
+    private var smartScrollExpr: android.widget.HorizontalScrollView? = null
+
     private class ManualInstance(val id: Int) {
         var floatView: View? = null
         var bubbleView: View? = null
@@ -117,6 +120,9 @@ class FloatingWindowService : Service() {
         createNotificationChannel()
         startForeground(NOTIF_ID, buildNotification())
 
+        SmartPopupState.isEditorOpen = false
+        sendBroadcast(Intent(ACTION_CLEAR_SMART).setPackage(packageName))
+
         val filter = IntentFilter().apply {
             addAction(ACTION_ADD_NUMBER)
             addAction(ACTION_DOCK)
@@ -142,7 +148,13 @@ class FloatingWindowService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        floatView?.layoutParams?.let { p ->
+            val lp = p as WindowManager.LayoutParams
+            saveSmartWindowSizeAndPos(lp.width, lp.height, lp.x, lp.y)
+        }
         SmartPopupState.isOpen = false
+        SmartPopupState.isEditorOpen = false
+        sendBroadcast(Intent(ACTION_CLEAR_SMART).setPackage(packageName))
         manualInstances.forEach {
             removeInstanceFloat(it)
             removeInstanceBubble(it)
@@ -723,7 +735,20 @@ class FloatingWindowService : Service() {
 
         applyPopupTheme(view, PopupThemeManager.getSmartTheme(this), isManual = false)
 
-        val params = buildParams(210, 220)
+        val sp = getSharedPreferences("smart_calc_prefs", MODE_PRIVATE)
+        val defaultW = dpToPx(180)
+        val defaultH = dpToPx(225)
+        val smartWidth = sp.getInt("smart_width", defaultW)
+        val smartHeight = sp.getInt("smart_height", defaultH)
+        val smartX = sp.getInt("smart_x", 80)
+        val smartY = sp.getInt("smart_y", 200)
+
+        val params = buildParams(180, 225).apply {
+            width = smartWidth
+            height = smartHeight
+            x = smartX
+            y = smartY
+        }
         wireSmartButtons(view)
         makeDraggable(view.findViewById(R.id.smartHeader), view, params)
 
@@ -733,7 +758,70 @@ class FloatingWindowService : Service() {
             attachSmartResizeHandles(resizeRight, resizeLeft, view, params)
         }
 
+        view.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_OUTSIDE) {
+                closeSmartExpressionEditor(commit = true)
+                true
+            } else {
+                false
+            }
+        }
+
         wm.addView(view, params)
+
+        refreshSmartDisplay()
+    }
+
+    private fun openSmartExpressionEditor() {
+        val et = smartEtExpr ?: return
+        val scroll = smartScrollExpr ?: return
+        val v = floatView ?: return
+        if (et.visibility == View.VISIBLE) return
+
+        val current = HistoryManager.entries.joinToString("+") { HistoryManager.fmt(it.value) }
+        et.setText(current)
+        et.setSelection(et.text?.length ?: 0)
+
+        scroll.visibility = View.GONE
+        et.visibility = View.VISIBLE
+        SmartPopupState.isEditorOpen = true
+
+        val params = v.layoutParams as? WindowManager.LayoutParams
+        if (params != null) {
+            params.flags = params.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
+            params.flags = params.flags or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
+            params.flags = params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+            try { wm.updateViewLayout(v, params) } catch (_: Exception) {}
+        }
+        et.postDelayed({
+            et.requestFocus()
+            et.setSelection(et.text?.length ?: 0)
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            imm.showSoftInput(et, android.view.inputmethod.InputMethodManager.SHOW_FORCED)
+        }, 120)
+    }
+
+    private fun closeSmartExpressionEditor(commit: Boolean) {
+        val et = smartEtExpr ?: return
+        val scroll = smartScrollExpr ?: return
+        val v = floatView ?: return
+        if (et.visibility != View.VISIBLE) return
+        if (commit) {
+            applyExpressionEdit(et.text?.toString().orEmpty())
+        }
+        et.visibility = View.GONE
+        scroll.visibility = View.VISIBLE
+        SmartPopupState.isEditorOpen = false
+
+        val params = v.layoutParams as? WindowManager.LayoutParams
+        if (params != null) {
+            params.flags = params.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+            params.flags = params.flags and WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH.inv()
+            params.flags = params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL.inv()
+            try { wm.updateViewLayout(v, params) } catch (_: Exception) {}
+        }
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+        imm.hideSoftInputFromWindow(et.windowToken, 0)
 
         refreshSmartDisplay()
     }
@@ -747,88 +835,62 @@ class FloatingWindowService : Service() {
         val scrollExpr = v.findViewById<android.widget.HorizontalScrollView>(R.id.scrollSmartExpression)
         val etExpr = v.findViewById<SmartExpressionEditText>(R.id.etSmartExpression)
 
-        fun closeExpressionEditor(commit: Boolean) {
-            if (etExpr.visibility != View.VISIBLE) return
-            if (commit) {
-                applyExpressionEdit(etExpr.text?.toString().orEmpty())
-            }
-            etExpr.visibility = View.GONE
-            scrollExpr?.visibility = View.VISIBLE
-            SmartPopupState.isEditorOpen = false
-
-            // Restore non-focusable window so popup doesn't steal global focus.
-            val params = v.layoutParams as? WindowManager.LayoutParams
-            if (params != null) {
-                params.flags = params.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                try { wm.updateViewLayout(v, params) } catch (_: Exception) {}
-            }
-            val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-            imm.hideSoftInputFromWindow(etExpr.windowToken, 0)
-
-            refreshSmartDisplay()
-        }
-
-        fun openExpressionEditor() {
-            if (etExpr.visibility == View.VISIBLE) return
-            val current = HistoryManager.entries.joinToString("+") { HistoryManager.fmt(it.value) }
-            etExpr.setText(current)
-            etExpr.setSelection(etExpr.text?.length ?: 0)
-
-            scrollExpr?.visibility = View.GONE
-            etExpr.visibility = View.VISIBLE
-            SmartPopupState.isEditorOpen = true
-
-            // Make window focusable so the soft keyboard can deliver input here.
-            val params = v.layoutParams as? WindowManager.LayoutParams
-            if (params != null) {
-                params.flags = params.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
-                try { wm.updateViewLayout(v, params) } catch (_: Exception) {}
-            }
-            etExpr.postDelayed({
-                etExpr.requestFocus()
-                etExpr.setSelection(etExpr.text?.length ?: 0)
-                val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                imm.showSoftInput(etExpr, android.view.inputmethod.InputMethodManager.SHOW_FORCED)
-            }, 120)
-        }
-
-        // Tapping anywhere in the expression area (after the last token, between
-        // tokens, or in the surrounding padding) opens the inline editor.
-        // HorizontalScrollView's own onClick is unreliable here, so use a
-        // GestureDetector on the parent FrameLayout that wraps both the scroll
-        // and the EditText overlay.
-        val exprArea = v.findViewById<FrameLayout>(R.id.smartExpressionArea)
-        val exprItems = v.findViewById<LinearLayout>(R.id.layoutSmartExpressionItems)
-        val tapDetector = android.view.GestureDetector(
-            this,
-            object : android.view.GestureDetector.SimpleOnGestureListener() {
-                override fun onSingleTapUp(e: android.view.MotionEvent): Boolean {
-                    openExpressionEditor()
-                    return true
+        // Filter keyboard input strictly to digits and basic math operators
+        val keyboardFilter = android.text.InputFilter { source, start, end, dest, dstart, dend ->
+            val builder = java.lang.StringBuilder()
+            for (i in start until end) {
+                val c = source[i]
+                if (c in "0123456789+-*/.") {
+                    builder.append(c)
                 }
             }
-        )
-        val tapTouchListener = View.OnTouchListener { _, ev ->
-            // Don't swallow events when the editor is already showing — let
-            // the EditText receive its own touches.
-            if (etExpr.visibility == View.VISIBLE) return@OnTouchListener false
-            tapDetector.onTouchEvent(ev)
-            // Returning false lets HorizontalScrollView still process scrolls;
-            // the GestureDetector will only fire onSingleTapUp for taps.
-            false
+            if (builder.length == end - start) null
+            else builder.toString()
         }
-        exprArea?.setOnTouchListener(tapTouchListener)
-        scrollExpr?.setOnTouchListener(tapTouchListener)
-        exprItems?.setOnTouchListener(tapTouchListener)
+        etExpr.filters = arrayOf(keyboardFilter)
+
+        // Real-time calculation and total display update while typing
+        etExpr.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                val raw = s?.toString().orEmpty().trim()
+                if (raw.isEmpty()) {
+                    v.findViewById<TextView>(R.id.tvSmartTotal)?.text = "0"
+                    v.findViewById<TextView>(R.id.tvSmartCount)?.text = ""
+                    return
+                }
+                val cleanExpr = raw.trimEnd('+', '-', '*', '/', '.')
+                val result = CalculatorEngine.eval(cleanExpr)
+                if (!result.isNaN() && !result.isInfinite()) {
+                    v.findViewById<TextView>(R.id.tvSmartTotal)?.text = CalculatorEngine.formatResult(result)
+                }
+            }
+        })
+
+        smartEtExpr = etExpr
+        smartScrollExpr = scrollExpr
+
+        // Tapping anywhere in the expression area opens the inline editor.
+        val exprArea = v.findViewById<FrameLayout>(R.id.smartExpressionArea)
+        val exprItems = v.findViewById<LinearLayout>(R.id.layoutSmartExpressionItems)
+        val clickListener = View.OnClickListener {
+            if (etExpr.visibility != View.VISIBLE) {
+                openSmartExpressionEditor()
+            }
+        }
+        exprArea?.setOnClickListener(clickListener)
+        scrollExpr?.setOnClickListener(clickListener)
+        exprItems?.setOnClickListener(clickListener)
 
         etExpr.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
-                closeExpressionEditor(commit = true)
+                closeSmartExpressionEditor(commit = true)
                 true
             } else false
         }
         etExpr.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus) closeExpressionEditor(commit = true)
+            if (!hasFocus) closeSmartExpressionEditor(commit = true)
         }
 
 
@@ -903,7 +965,13 @@ class FloatingWindowService : Service() {
 
         v.findViewById<ImageButton>(R.id.btnSmartMinimize).setOnClickListener { dockToBubble() }
         v.findViewById<ImageButton>(R.id.btnSmartClose).setOnClickListener {
+            floatView?.layoutParams?.let { p ->
+                val lp = p as WindowManager.LayoutParams
+                saveSmartWindowSizeAndPos(lp.width, lp.height, lp.x, lp.y)
+            }
             SmartPopupState.isOpen = false
+            SmartPopupState.isEditorOpen = false
+            sendBroadcast(Intent(ACTION_CLEAR_SMART).setPackage(packageName))
             removeFloat()
             removeBubble()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
@@ -981,13 +1049,14 @@ class FloatingWindowService : Service() {
                 val exprColor = if (isDark) android.graphics.Color.parseColor("#80FFFFFF") else android.graphics.Color.parseColor("#80000000")
 
                 entries.forEachIndexed { i, entry ->
-                    // Separator " + " before each item except the first
+                    // Separator "+" before each item except the first
                     if (i > 0) {
                         val sep = TextView(this@FloatingWindowService).apply {
-                            text = " + "
+                            text = "+"
                             textSize = 18f
                             setTextColor(exprColor)
                             typeface = android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL)
+                            setPadding(dpToPx(2), 0, dpToPx(2), 0)
                         }
                         exprContainer.addView(sep)
                     }
@@ -998,7 +1067,7 @@ class FloatingWindowService : Service() {
                         textSize = 18f
                         setTextColor(exprColor)
                         typeface = android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL)
-                        setPadding(2, 0, 2, 0)
+                        setPadding(dpToPx(1), 0, dpToPx(1), 0)
 
                         // Restore checked state
                         if (entry.isChecked) {
@@ -1008,13 +1077,31 @@ class FloatingWindowService : Service() {
                         }
 
                         // Double-click: toggle this entry's strikethrough
-                        setDoubleClickListener(this) {
-                            entry.isChecked = !entry.isChecked
-                            if (entry.isChecked) {
-                                paintFlags = paintFlags or android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
+                        // Double-click: toggle this entry's strikethrough
+                        var lastClickTime = 0L
+                        val clickHandler = android.os.Handler(android.os.Looper.getMainLooper())
+                        var pendingSingleClick: Runnable? = null
+
+                        setOnClickListener {
+                            val clickTime = System.currentTimeMillis()
+                            if (clickTime - lastClickTime < 300L) {
+                                // Double click detected: cancel pending single click, toggle checked state
+                                pendingSingleClick?.let { clickHandler.removeCallbacks(it) }
+                                pendingSingleClick = null
+
+                                entry.isChecked = !entry.isChecked
+                                refreshSmartDisplay()
                             } else {
-                                paintFlags = paintFlags and android.graphics.Paint.STRIKE_THRU_TEXT_FLAG.inv()
+                                // Potential single click: post delayed editor opening
+                                pendingSingleClick?.let { clickHandler.removeCallbacks(it) }
+                                val run = Runnable {
+                                    openSmartExpressionEditor()
+                                    pendingSingleClick = null
+                                }
+                                pendingSingleClick = run
+                                clickHandler.postDelayed(run, 250L)
                             }
+                            lastClickTime = clickTime
                         }
 
                         // Long-press: mark/unmark ALL entries
@@ -1105,16 +1192,45 @@ class FloatingWindowService : Service() {
     private fun dockToBubble() {
         if (currentMode == "bubble") return
         preMinimiseMode = currentMode
+        if (currentMode == "smart") {
+            floatView?.layoutParams?.let { p ->
+                val lp = p as WindowManager.LayoutParams
+                saveSmartWindowSizeAndPos(lp.width, lp.height, lp.x, lp.y)
+            }
+        }
         removeFloat()
         currentMode = "bubble"
+        SmartPopupState.isOpen = false
 
         val view = inflate(R.layout.layout_floating_bubble)
         bubbleView = view
 
-        val params = buildParams(24, 24).apply {
+        val params = buildParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
             gravity = Gravity.TOP or Gravity.START
             x = bubbleLastX
             y = bubbleLastY
+        }
+
+        val tvBubble = view.findViewById<TextView>(R.id.tvBubbleText)
+        if (preMinimiseMode == "smart") {
+            val bubbleText = getSmartBubbleText()
+            tvBubble?.text = bubbleText
+            tvBubble?.setTextColor(Color.BLACK)
+        } else {
+            tvBubble?.text = "⊞"
+        }
+
+        // Snap to right edge on first minimize
+        view.post {
+            val screenW = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+                wm.currentWindowMetrics.bounds.width()
+            else
+                @Suppress("DEPRECATION") wm.defaultDisplay.width
+            val bubbleW = if (view.width > 0) view.width else dpToPx(36)
+            params.x = screenW - bubbleW
+            try { wm.updateViewLayout(view, params) } catch (_: Exception) {}
+            bubbleLastX = params.x
+            bubbleLastY = params.y
         }
 
         var initX = 0; var initY = 0; var initRx = 0f; var initRy = 0f; var moved = false
@@ -1157,7 +1273,8 @@ class FloatingWindowService : Service() {
             wm.currentWindowMetrics.bounds.width()
         else
             @Suppress("DEPRECATION") wm.defaultDisplay.width
-        params.x = if (params.x + dpToPx(12) < screenW / 2) 0 else screenW - dpToPx(24)
+        val bubbleW = if (bv.width > 0) bv.width else dpToPx(36)
+        params.x = if (params.x + bubbleW / 2 < screenW / 2) 0 else screenW - bubbleW
         wm.updateViewLayout(bv, params)
         bubbleLastX = params.x
         bubbleLastY = params.y
@@ -1180,6 +1297,12 @@ class FloatingWindowService : Service() {
                     params.x = initX + (ev.rawX - initRx).toInt()
                     params.y = initY + (ev.rawY - initRy).toInt()
                     wm.updateViewLayout(root, params); true
+                }
+                MotionEvent.ACTION_UP -> {
+                    if (root == floatView) {
+                        saveSmartWindowSizeAndPos(params.width, params.height, params.x, params.y)
+                    }
+                    false
                 }
                 else -> false
             }
@@ -1298,6 +1421,10 @@ class FloatingWindowService : Service() {
                     params.width = newW; params.height = newH
                     wm.updateViewLayout(root, params); true
                 }
+                MotionEvent.ACTION_UP -> {
+                    saveSmartWindowSizeAndPos(params.width, params.height, params.x, params.y)
+                    false
+                }
                 else -> false
             }
         }
@@ -1319,6 +1446,10 @@ class FloatingWindowService : Service() {
                     params.x = startX + actualDx
                     params.width = newW; params.height = newH
                     wm.updateViewLayout(root, params); true
+                }
+                MotionEvent.ACTION_UP -> {
+                    saveSmartWindowSizeAndPos(params.width, params.height, params.x, params.y)
+                    false
                 }
                 else -> false
             }
@@ -1572,6 +1703,36 @@ class FloatingWindowService : Service() {
     }
 
     private fun dpToPx(dp: Int): Int = (dp * resources.displayMetrics.density).toInt()
+
+    private fun saveSmartWindowSizeAndPos(width: Int, height: Int, x: Int, y: Int) {
+        val sp = getSharedPreferences("smart_calc_prefs", MODE_PRIVATE)
+        sp.edit()
+            .putInt("smart_width", width)
+            .putInt("smart_height", height)
+            .putInt("smart_x", x)
+            .putInt("smart_y", y)
+            .apply()
+    }
+
+    private fun getSmartBubbleText(): String {
+        val totalVal = HistoryManager.total
+        if (totalVal.isNaN() || totalVal.isInfinite()) return "0"
+        val rawFmt = HistoryManager.formattedTotal()
+        val digits = rawFmt.count { it.isDigit() }
+        if (digits <= 5) return rawFmt
+
+        val intVal = totalVal.toLong()
+        val intStr = intVal.toString()
+        val intDigits = intStr.count { it.isDigit() }
+        if (intDigits <= 5) return intStr
+
+        if (intVal >= 100000) {
+            val kValue = intVal / 1000
+            val kStr = "${kValue}k"
+            if (kStr.length <= 5) return kStr
+        }
+        return intStr.take(5)
+    }
 
     private fun removeFloat() {
         floatView?.let { try { wm.removeView(it) } catch (_: Exception) {} }

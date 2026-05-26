@@ -4,10 +4,13 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/bubbleRoot"
     android:layout_width="wrap_content"
-    android:layout_height="30dp"
-    android:minWidth="30dp"
-    android:paddingLeft="8dp"
-    android:paddingRight="8dp"
+    android:layout_height="wrap_content"
+    android:minWidth="36dp"
+    android:minHeight="36dp"
+    android:paddingLeft="10dp"
+    android:paddingRight="10dp"
+    android:paddingTop="5dp"
+    android:paddingBottom="5dp"
     android:background="@drawable/bg_bubble"
     android:elevation="8dp">
 
@@ -17,9 +20,9 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:text="⊞"
-        android:textColor="#FF1C1C1E"
-        android:textSize="14sp"
+        android:textColor="#FF000000"
+        android:textSize="15sp"
         android:singleLine="true"
-        android:fontFamily="sans-serif"/>
+        android:fontFamily="sans-serif-medium"/>
 
 </FrameLayout>

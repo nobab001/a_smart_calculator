@@ -51,7 +51,7 @@ class SmartAccessibilityService : AccessibilityService() {
 
         private const val NODE_CAPTURE_GUARD_MS = 100L
         /** After a full-clear from the popup, suppress captures briefly, then auto-reset. */
-        private const val CLEAR_COOLDOWN_MS = 2000L
+        private const val CLEAR_COOLDOWN_MS = 1000L
         private const val CONTENT_DEEP_SCAN_MIN_INTERVAL_MS = 120L
         /** Block identical value commits within this window to absorb duplicates from sibling nodes. */
         private const val SAME_VALUE_GUARD_MS = 200L
@@ -818,6 +818,16 @@ class SmartAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun convertEmojisAndBengaliToEnglish(input: String): String {
+        var str = input
+        str = str.replace("🔟", "10")
+        str = str.replace("➕", "+")
+        str = str.replace("➖", "-")
+        str = str.replace("\uFE0F", "")
+        str = str.replace("\u20E3", "")
+        return convertBengaliToEnglishDigits(str)
+    }
+
     private fun extractSelectedText(node: AccessibilityNodeInfo): String {
         val text  = node.text?.toString() ?: return ""
         val start = node.textSelectionStart
@@ -831,16 +841,16 @@ class SmartAccessibilityService : AccessibilityService() {
      *  - Only tokens with [MIN_MONEY_DIGITS]–[MAX_MONEY_DIGITS] digits qualify (money range).
      *  - Two qualifying tokens adjacent via a lone `/` or `*` form a ratio/expression and
      *    are BOTH discarded (e.g. "756/656" → null).
-     *  - Consecutive qualifying tokens adjacent via lone `+` form an addition chain whose
-     *    sum is the result for that chain (e.g. "744+655" → 1399, "1;500+884" → 1384).
+     *  - Consecutive qualifying tokens adjacent via lone `+` or `-` form a chain whose
+     *    evaluated result is returned.
      *  - When multiple chains / standalone tokens remain, the rightmost (last) chain wins
      *    to preserve previous "last match" semantics.
-     *  - Non-qualifying tokens (1–2 digit, 6+ digit) are ignored and do NOT break/extend
+     *  - Non-qualifying tokens (1 digit, 6+ digit) are ignored and do NOT break/extend
      *    chains of qualifying tokens around them.
      */
     private fun parseNumericValue(raw: String): Double? {
-        // Convert Bengali digits to English first, then sanitize
-        val withEnglishDigits = convertBengaliToEnglishDigits(raw)
+        // Convert emojis and Bengali digits to English first, then sanitize
+        val withEnglishDigits = convertEmojisAndBengaliToEnglish(raw)
         val sanitized = withEnglishDigits
             .replace(TIME_REGEX, " ")
             .replace(FORMATTED_PHONE_REGEX, " ")
@@ -857,18 +867,27 @@ class SmartAccessibilityService : AccessibilityService() {
         }.toList()
         if (tokens.isEmpty()) return null
 
-        fun qualifies(t: Tok) = t.digits in MIN_MONEY_DIGITS..MAX_MONEY_DIGITS
-
-        // Indices (into `tokens`) of qualifying tokens, in order.
-        val qualIdx = tokens.indices.filter { qualifies(tokens[it]) }
-        if (qualIdx.isEmpty()) return null
-
         // Returns the trimmed operator string between two consecutive (in `tokens`) tokens,
         // or null if the tokens are not consecutive in the token list.
         fun opBetween(aIdx: Int, bIdx: Int): String? {
             if (bIdx != aIdx + 1) return null
             return sanitized.substring(tokens[aIdx].end, tokens[bIdx].start).trim()
         }
+
+        // Indices (into `tokens`) of qualifying tokens, in order.
+        val qualIdx = tokens.indices.filter { i ->
+            val t = tokens[i]
+            if (t.digits in MIN_MONEY_DIGITS..MAX_MONEY_DIGITS) {
+                true
+            } else if (t.digits == 2) {
+                val prevOp = if (i > 0) opBetween(i - 1, i) else null
+                val nextOp = if (i < tokens.size - 1) opBetween(i, i + 1) else null
+                prevOp == "+" || prevOp == "-" || nextOp == "+" || nextOp == "-"
+            } else {
+                false
+            }
+        }
+        if (qualIdx.isEmpty()) return null
 
         // Step 1: exclude pairs of qualifying tokens joined by a lone `/` or `*`.
         val excluded = mutableSetOf<Int>()
@@ -884,8 +903,8 @@ class SmartAccessibilityService : AccessibilityService() {
         val remaining = qualIdx.filter { it !in excluded }
         if (remaining.isEmpty()) return null
 
-        // Step 2: group remaining into `+`-chains. Two qualifying tokens belong to the same
-        // chain iff they are consecutive in `tokens` AND joined by a lone `+`.
+        // Step 2: group remaining into `+`/`-`-chains. Two qualifying tokens belong to the same
+        // chain iff they are consecutive in `tokens` AND joined by a lone `+` or `-`.
         val chains = mutableListOf<MutableList<Int>>()
         var current = mutableListOf<Int>()
         for (idx in remaining) {
@@ -894,7 +913,7 @@ class SmartAccessibilityService : AccessibilityService() {
             } else {
                 val prev = current.last()
                 val op = opBetween(prev, idx)
-                if (op == "+") {
+                if (op == "+" || op == "-") {
                     current.add(idx)
                 } else {
                     chains.add(current)
@@ -904,9 +923,18 @@ class SmartAccessibilityService : AccessibilityService() {
         }
         if (current.isNotEmpty()) chains.add(current)
 
-        // Step 3: pick the last (rightmost) chain; sum its tokens.
+        // Step 3: pick the last (rightmost) chain; sum/subtract its tokens.
         val lastChain = chains.last()
-        val value = lastChain.sumOf { tokens[it].value }
+        var value = tokens[lastChain[0]].value
+        for (i in 1 until lastChain.size) {
+            val op = opBetween(lastChain[i - 1], lastChain[i])
+            val nextVal = tokens[lastChain[i]].value
+            if (op == "+") {
+                value += nextVal
+            } else if (op == "-") {
+                value -= nextVal
+            }
+        }
         return if (value.isFinite()) value else null
     }
 
