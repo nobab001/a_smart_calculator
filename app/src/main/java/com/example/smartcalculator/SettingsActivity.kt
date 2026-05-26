@@ -39,8 +39,9 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var rowResetLayout: LinearLayout
 
     // Developer section
+    private lateinit var rowDeveloperHeader: LinearLayout
     private lateinit var tvDeveloperName: TextView
-    private lateinit var btnDeveloperExpand: ImageButton
+    private lateinit var btnDeveloperExpand: android.widget.ImageView
     private lateinit var panelDeveloperContacts: LinearLayout
     private lateinit var rowDevCall: LinearLayout
     private lateinit var rowDevWhatsApp: LinearLayout
@@ -83,6 +84,7 @@ class SettingsActivity : AppCompatActivity() {
         rowMoveButtons = findViewById(R.id.rowMoveButtons)
         rowResetLayout = findViewById(R.id.rowResetLayout)
 
+        rowDeveloperHeader     = findViewById(R.id.rowDeveloperHeader)
         tvDeveloperName        = findViewById(R.id.tvDeveloperName)
         btnDeveloperExpand     = findViewById(R.id.btnDeveloperExpand)
         panelDeveloperContacts = findViewById(R.id.panelDeveloperContacts)
@@ -140,16 +142,7 @@ class SettingsActivity : AppCompatActivity() {
                 .show()
         }
 
-        // Arrow → single tap toggles the contact panel.
-        btnDeveloperExpand.setOnClickListener { toggleDeveloperPanel() }
-
-        // Name → double-tap toggles the contact panel.
-        var lastClickTime = 0L
-        tvDeveloperName.setOnClickListener {
-            val now = System.currentTimeMillis()
-            if (now - lastClickTime < 300L) toggleDeveloperPanel()
-            lastClickTime = now
-        }
+        rowDeveloperHeader.setOnClickListener { toggleDeveloperPanel() }
 
         rowDevCall.setOnClickListener     { dialDeveloperNumber() }
         rowDevWhatsApp.setOnClickListener { openDeveloperWhatsApp() }

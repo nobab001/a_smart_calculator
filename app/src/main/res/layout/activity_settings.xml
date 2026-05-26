@@ -518,11 +518,15 @@
 
         <!-- Header row: name + arrow toggle -->
         <LinearLayout
+            android:id="@+id/rowDeveloperHeader"
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingHorizontal="20dp">
+            android:paddingHorizontal="20dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground">
 
             <TextView
                 android:id="@+id/tvDeveloperName"
@@ -533,22 +537,17 @@
                 android:text="MD Yousuf"
                 android:textColor="@color/text_primary"
                 android:textSize="15sp"
-                android:fontFamily="sans-serif-medium"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackground"/>
+                android:fontFamily="sans-serif-medium"/>
 
-            <ImageButton
+            <ImageView
                 android:id="@+id/btnDeveloperExpand"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
                 android:src="@drawable/ic_arrow_back"
                 android:rotation="180"
                 android:tint="@color/text_secondary"
                 android:alpha="0.7"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Show developer contacts"
-                android:padding="8dp"/>
+                android:contentDescription="Show developer contacts"/>
         </LinearLayout>
 
         <!-- Contact panel (hidden by default) -->
@@ -567,58 +566,86 @@
                 android:background="@color/divider"
                 android:layout_marginBottom="10dp"/>
 
+            <!-- Call Option -->
             <LinearLayout
                 android:id="@+id/rowDevCall"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="48dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:clickable="true"
                 android:focusable="true"
-                android:background="?attr/selectableItemBackground">
+                android:background="?attr/selectableItemBackground"
+                android:paddingHorizontal="4dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_call"
+                    android:tint="@color/btn_action"
+                    android:layout_marginEnd="12dp"/>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Call:"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="13sp"
-                    android:layout_marginEnd="8dp"/>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="01614677619"
-                    android:textColor="@color/btn_action"
+                    android:text="Call"
+                    android:textColor="@color/text_primary"
                     android:textSize="14sp"
                     android:fontFamily="sans-serif-medium"/>
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Click Here"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif"/>
             </LinearLayout>
 
+            <!-- WhatsApp Option -->
             <LinearLayout
                 android:id="@+id/rowDevWhatsApp"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="48dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:clickable="true"
                 android:focusable="true"
-                android:background="?attr/selectableItemBackground">
+                android:background="?attr/selectableItemBackground"
+                android:paddingHorizontal="4dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_whatsapp"
+                    android:tint="@color/btn_equals"
+                    android:layout_marginEnd="12dp"/>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="WhatsApp:"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="13sp"
-                    android:layout_marginEnd="8dp"/>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="01894086541"
-                    android:textColor="@color/btn_equals"
+                    android:text="WhatsApp"
+                    android:textColor="@color/text_primary"
                     android:textSize="14sp"
                     android:fontFamily="sans-serif-medium"/>
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Click Here"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif"/>
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
