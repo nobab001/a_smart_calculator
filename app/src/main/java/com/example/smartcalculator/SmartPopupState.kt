@@ -25,4 +25,11 @@ object SmartPopupState {
      */
     @Volatile
     var isEditorOpen: Boolean = false
+
+    /**
+     * Timestamp (System.currentTimeMillis) of the last inline editor closure.
+     * Used to ignore accessibility clicks that closed the editor.
+     */
+    @Volatile
+    var lastEditorCloseMs: Long = 0L
 }

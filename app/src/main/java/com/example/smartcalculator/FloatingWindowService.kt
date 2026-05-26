@@ -811,6 +811,7 @@ class FloatingWindowService : Service() {
         }
         et.visibility = View.GONE
         scroll.visibility = View.VISIBLE
+        SmartPopupState.lastEditorCloseMs = System.currentTimeMillis()
         SmartPopupState.isEditorOpen = false
 
         val params = v.layoutParams as? WindowManager.LayoutParams

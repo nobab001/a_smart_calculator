@@ -659,6 +659,8 @@ class SmartAccessibilityService : AccessibilityService() {
         // Suspend captures while the user is hand-editing the expression line.
         if (SmartPopupState.isEditorOpen) return
         val now = System.currentTimeMillis()
+        // Enforce cooldown after closing the editor to ignore outside clicks that dismiss editor/keyboard
+        if (now - SmartPopupState.lastEditorCloseMs < 800L) return
         // Brief cooldown after a full-clear so a long-press release doesn't immediately recapture.
         // Uses shared static state set synchronously by the popup (independent of broadcast).
         if (now - SmartPopupState.lastClearMs < CLEAR_COOLDOWN_MS) return
