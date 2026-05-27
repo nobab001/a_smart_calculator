@@ -222,8 +222,8 @@ class FloatingWindowService : Service() {
         // Set the title
         view.findViewById<TextView>(R.id.tvFloatTitle)?.text = instance.titleText
 
-        val sp = getSharedPreferences("manual_calc_prefs", MODE_PRIVATE)
-        val everOpened = sp.getBoolean("manual_ever_opened", false)
+        val sp = getSharedPreferences("manual_calc_prefs_v2", MODE_PRIVATE)
+        val everOpened = sp.getBoolean("manual_ever_opened_v2", false)
         if (everOpened) {
             if (instance.widthPx == -1) instance.widthPx = sp.getInt("manual_w_${instance.id}", -1)
             if (instance.heightPx == -1) instance.heightPx = sp.getInt("manual_h_${instance.id}", -1)
@@ -827,13 +827,14 @@ class FloatingWindowService : Service() {
 
         val minW = dpToPx(180)
         val minH = dpToPx(225)
-        val sp = getSharedPreferences("smart_calc_prefs", MODE_PRIVATE)
+        val sp = getSharedPreferences("smart_calc_prefs_v2", MODE_PRIVATE)
+        val everOpened = sp.getBoolean("smart_ever_opened_v2", false)
         val defaultX = 80 + (smartSequenceId - 1) * 60
         val defaultY = 200 + (smartSequenceId - 1) * 80
-        val smartX = sp.getInt("smart_x", defaultX)
-        val smartY = sp.getInt("smart_y", defaultY)
-        val smartW = sp.getInt("smart_width", minW)
-        val smartH = sp.getInt("smart_height", minH)
+        val smartX = if (everOpened) sp.getInt("smart_x", defaultX) else defaultX
+        val smartY = if (everOpened) sp.getInt("smart_y", defaultY) else defaultY
+        val smartW = if (everOpened) sp.getInt("smart_width", minW) else minW
+        val smartH = if (everOpened) sp.getInt("smart_height", minH) else minH
 
         val totalActive = manualInstances.size + 1
         val tvTitle = view.findViewById<TextView>(R.id.tvSmartTitle)
@@ -1973,23 +1974,24 @@ class FloatingWindowService : Service() {
     private fun dpToPx(dp: Int): Int = (dp * resources.displayMetrics.density).toInt()
 
     private fun saveSmartWindowSizeAndPos(width: Int, height: Int, x: Int, y: Int) {
-        val sp = getSharedPreferences("smart_calc_prefs", MODE_PRIVATE)
+        val sp = getSharedPreferences("smart_calc_prefs_v2", MODE_PRIVATE)
         sp.edit()
             .putInt("smart_width", width)
             .putInt("smart_height", height)
             .putInt("smart_x", x)
             .putInt("smart_y", y)
+            .putBoolean("smart_ever_opened_v2", true)
             .apply()
     }
 
     private fun saveManualInstanceSizeAndPos(instanceId: Int, width: Int, height: Int, x: Int, y: Int) {
-        val sp = getSharedPreferences("manual_calc_prefs", MODE_PRIVATE)
+        val sp = getSharedPreferences("manual_calc_prefs_v2", MODE_PRIVATE)
         sp.edit()
             .putInt("manual_w_$instanceId", width)
             .putInt("manual_h_$instanceId", height)
             .putInt("manual_x_$instanceId", x)
             .putInt("manual_y_$instanceId", y)
-            .putBoolean("manual_ever_opened", true)
+            .putBoolean("manual_ever_opened_v2", true)
             .apply()
     }
 
