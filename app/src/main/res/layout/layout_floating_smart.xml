@@ -144,22 +144,46 @@
                 android:fontFamily="sans-serif-medium"
                 android:layout_marginTop="2dp"/>
 
-            <!-- Large total number -->
-            <TextView
-                android:id="@+id/tvSmartTotal"
+            <!-- Large total row: dimmed "=" on left + number -->
+            <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="0"
-                android:textColor="@color/text_primary"
-                android:textSize="30sp"
-                android:gravity="center"
-                android:singleLine="true"
-                android:ellipsize="start"
-                android:fontFamily="sans-serif-light"
-                android:includeFontPadding="false"
-                android:layout_marginTop="2dp"/>
+                android:layout_marginTop="2dp">
 
-            <!-- Item count: "3 selections" -->
+                <!-- Dimmed "=" sign, far left, clickable to toggle badge -->
+                <TextView
+                    android:id="@+id/tvSmartEquals"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="="
+                    android:textColor="@color/text_primary"
+                    android:alpha="0.25"
+                    android:textSize="22sp"
+                    android:fontFamily="sans-serif-light"
+                    android:includeFontPadding="false"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:paddingStart="2dp"
+                    android:clickable="true"
+                    android:focusable="true"/>
+
+                <!-- Large total number -->
+                <TextView
+                    android:id="@+id/tvSmartTotal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_toEndOf="@id/tvSmartEquals"
+                    android:text="0"
+                    android:textColor="@color/text_primary"
+                    android:textSize="30sp"
+                    android:gravity="center"
+                    android:singleLine="true"
+                    android:ellipsize="start"
+                    android:fontFamily="sans-serif-light"
+                    android:includeFontPadding="false"/>
+            </RelativeLayout>
+
+            <!-- Item count / equals badge row -->
             <TextView
                 android:id="@+id/tvSmartCount"
                 android:layout_width="match_parent"

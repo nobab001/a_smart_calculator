@@ -436,16 +436,18 @@ class FloatingWindowService : Service() {
         fun formatWithLimit(value: String): String {
             val formatted = fmtNum(value)
             val digitCount = formatted.count { it.isDigit() }
-            return if (digitCount > 5) instance.sequenceId.toString() else formatted
+            // Too many digits → return empty (no fallback ID)
+            return if (digitCount > 5) "" else formatted
         }
 
-        // No expression typed — show serial number
-        if (calcExpr.isEmpty()) return instance.sequenceId.toString()
+        // No expression typed — blank bubble
+        if (calcExpr.isEmpty()) return ""
 
         // Equals pressed — show final result
         if (instance.floatJustEquals) {
             val total = instance.floatExprDisplay.toString().ifEmpty { "0" }
-            return formatWithLimit(total)
+            val result = formatWithLimit(total)
+            return if (result == "0") "" else result
         }
 
         // Expression in progress — evaluate what we can
@@ -453,7 +455,7 @@ class FloatingWindowService : Service() {
         val evalExpr = if (endsWithOp) calcExpr.dropLast(1) else calcExpr
         if (evalExpr.isNotEmpty()) {
             val result = CalculatorEngine.eval(evalExpr)
-            if (!result.isNaN() && !result.isInfinite()) {
+            if (!result.isNaN() && !result.isInfinite() && result != 0.0) {
                 return formatWithLimit(fmtResult(result))
             }
         }
@@ -462,9 +464,9 @@ class FloatingWindowService : Service() {
         val displayExpr = instance.floatExprDisplay.toString()
         val lastOp = displayExpr.indexOfLast { it == '+' || it == '\u2212' || it == '\u00d7' || it == '\u00f7' }
         val currentNum = if (lastOp < 0) displayExpr else displayExpr.substring(lastOp + 1)
-        if (currentNum.isNotEmpty() && currentNum != "-") return formatWithLimit(currentNum)
+        if (currentNum.isNotEmpty() && currentNum != "-" && currentNum != "0") return formatWithLimit(currentNum)
 
-        return instance.sequenceId.toString()
+        return ""
     }
 
     private fun removeInstanceFloat(instance: ManualInstance) {
@@ -966,14 +968,14 @@ class FloatingWindowService : Service() {
             override fun afterTextChanged(s: android.text.Editable?) {
                 val raw = s?.toString().orEmpty().trim()
                 if (raw.isEmpty()) {
-                    v.findViewById<TextView>(R.id.tvSmartTotal)?.text = "= 0"
+                    v.findViewById<TextView>(R.id.tvSmartTotal)?.text = "0"
                     v.findViewById<TextView>(R.id.tvSmartCount)?.text = ""
                     return
                 }
                 val cleanExpr = raw.trimEnd('+', '-', '*', '/', '.')
                 val result = CalculatorEngine.eval(cleanExpr)
                 if (!result.isNaN() && !result.isInfinite()) {
-                    v.findViewById<TextView>(R.id.tvSmartTotal)?.text = "= " + CalculatorEngine.formatResult(result)
+                    v.findViewById<TextView>(R.id.tvSmartTotal)?.text = CalculatorEngine.formatResult(result)
                 }
             }
         })
@@ -1004,25 +1006,26 @@ class FloatingWindowService : Service() {
         }
 
 
-        // Copy: single click → compact "520+313+375" (paste into any calculator)
-        //        long press   → full  "520 + 313 + 375 = 3643" (human-readable)
+        // Copy button:
+        //   single click → full "expr = result" (human-readable)
+        //   long press   → compact "520+313+375" (paste into calculator)
         val btnCopy = v.findViewById<MaterialButton>(R.id.btnSmartAction)
         btnCopy.setOnClickListener {
+            val expr   = HistoryManager.expressionString()
+            val result = HistoryManager.formattedTotal()
+            val text   = if (HistoryManager.hasEntries()) "$expr = $result" else result
+            val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("result", text))
+            Toast.makeText(this, "Copied: $result", Toast.LENGTH_SHORT).show()
+        }
+        btnCopy.setOnLongClickListener {
             val text = if (HistoryManager.hasEntries())
                 HistoryManager.calcExpressionString()
             else
                 HistoryManager.formattedTotal()
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
             clipboard.setPrimaryClip(android.content.ClipData.newPlainText("expr", text))
-            Toast.makeText(this, "Copied: $text", Toast.LENGTH_SHORT).show()
-        }
-        btnCopy.setOnLongClickListener {
-            val expr   = HistoryManager.expressionString()
-            val result = HistoryManager.formattedTotal()
-            val text   = if (HistoryManager.hasEntries()) "$expr = $result" else result
-            val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("result", text))
-            Toast.makeText(this, "Copied full: $result", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Copied expr: $text", Toast.LENGTH_SHORT).show()
             true
         }
 
@@ -1042,7 +1045,6 @@ class FloatingWindowService : Service() {
 
         v.findViewById<MaterialButton>(R.id.btnSmartUndo).setOnLongClickListener {
             SmartPopupState.lastClearMs = System.currentTimeMillis()
-            // End session: save current entries to completed sessions, then clear
             HistoryManager.endCurrentSession()
             closeSmartHistorySubWindow()
             sendBroadcast(Intent(ACTION_CLEAR_SMART).setPackage(packageName))
@@ -1052,27 +1054,28 @@ class FloatingWindowService : Service() {
 
         val tvSmartTotal = v.findViewById<TextView>(R.id.tvSmartTotal)
         val tvSmartCount = v.findViewById<TextView>(R.id.tvSmartCount)
+        val tvSmartEquals = v.findViewById<TextView>(R.id.tvSmartEquals)
 
-        // "= 600" চিহ্নে ক্লিক করলে → সব entry মিলিয়ে একটা টোটাল হয়ে যাবে
-        // condition নেই — ১টা entry হোক বা ১০টা, সবসময় কাজ করবে
-        val equalsMergeAction = {
-            if (HistoryManager.hasEntries()) {
-                val totalVal = HistoryManager.total
-                val entries  = HistoryManager.entries
-                // Save current session before merging
-                HistoryManager.endCurrentSession()
-                // Add the merged total as the single new entry
-                HistoryManager.addEntry(totalVal)
+        // Total (number) click/double-click → copy total value
+        var lastTotalClickMs = 0L
+        tvSmartTotal?.setOnClickListener {
+            val result = HistoryManager.formattedTotal()
+            val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("total", result))
+            Toast.makeText(this, "Copied: $result", Toast.LENGTH_SHORT).show()
+            lastTotalClickMs = System.currentTimeMillis()
+        }
+
+        // "=" sign click → toggle equals badge in count row
+        tvSmartEquals?.setOnClickListener {
+            val countTv = tvSmartCount ?: return@setOnClickListener
+            if (countTv.text.toString() == "=") {
+                // Badge already showing "=" → restore normal count text
                 refreshSmartDisplay()
-                Toast.makeText(this, "Merged: ${HistoryManager.formattedTotal()}", Toast.LENGTH_SHORT).show()
+            } else {
+                // Move "=" down to the count row
+                countTv.text = "="
             }
-        }
-
-        if (tvSmartTotal != null) {
-            tvSmartTotal.setOnClickListener { equalsMergeAction() }
-        }
-        if (tvSmartCount != null) {
-            tvSmartCount.setOnClickListener { equalsMergeAction() }
         }
 
 
@@ -1147,13 +1150,14 @@ class FloatingWindowService : Service() {
         if (currentMode != "smart") return
 
         v.post {
-            // Total
-            v.findViewById<TextView>(R.id.tvSmartTotal)?.text = "= " + HistoryManager.formattedTotal()
+            // Total — number only; the "=" sign is a separate dim view (tvSmartEquals)
+            v.findViewById<TextView>(R.id.tvSmartTotal)?.text = HistoryManager.formattedTotal()
 
-            // Selection count label
+            // Selection count label (reset any "=" badge that was toggled)
             val n = HistoryManager.count
             v.findViewById<TextView>(R.id.tvSmartCount)?.text =
                 if (n == 0) "" else "$n selection${if (n > 1) "s" else ""}"
+
 
             // Per-entry expression items inside HorizontalScrollView
             val exprContainer = v.findViewById<LinearLayout>(R.id.layoutSmartExpressionItems)
@@ -2004,11 +2008,9 @@ class FloatingWindowService : Service() {
     }
 
     private fun getSmartBubbleText(): String {
-        if (!HistoryManager.hasEntries()) {
-            return smartSequenceId.toString()
-        }
+        if (!HistoryManager.hasEntries()) return ""
         val totalVal = HistoryManager.total
-        if (totalVal.isNaN() || totalVal.isInfinite()) return smartSequenceId.toString()
+        if (totalVal.isNaN() || totalVal.isInfinite() || totalVal == 0.0) return ""
         val rawFmt = HistoryManager.formattedTotal()
         val digits = rawFmt.count { it.isDigit() }
         if (digits <= 5) return rawFmt
